@@ -1,49 +1,109 @@
-# History files
-.Rhistory
-.Rapp.history
+rm(list = ls())
+dt1=read.csv(file.choose(),header = T)
+attach(dt1)
+head(dt1)
+############################################################### Cleaning
+str(dt1)
+######################### Remove Rows with Missing Values
+library(dplyr)
+dt1 = dt1 %>% na.omit()
+str(dt1)
+############################################################### Charts
+freq = table(HeartDiseaseorAttack,HighBP)/nrow(dt1)
+barplot(freq, main="Heart Disease or Attack vs High Blood Pressure",
+        xlab="High Blood Pressure", col=c("darkblue","red"),
+        legend = rownames(freq), beside=TRUE)
+chisq.test(table(HighBP,HeartDiseaseorAttack),correct = F)
 
-# Session Data files
-.RData
-.RDataTmp
+freq = table(HeartDiseaseorAttack,HighChol)/nrow(dt1)
+barplot(freq, main="Heart Disease or Attack vs Cholesterol",
+        xlab="Cholesterol", col=c("darkblue","red"),
+        legend = rownames(freq), beside=TRUE)
+chisq.test(table(HighChol,HeartDiseaseorAttack),correct = F)
 
-# User-specific files
-.Ruserdata
+par(mfrow=c(1,2))
+hist(BMI[HeartDiseaseorAttack==0], xlab="BMI"
+     ,main = "Histogram of BMI when Heart Disease or Attack=0 ", col="darkblue")
+hist(BMI[HeartDiseaseorAttack==1], xlab="BMI"
+     ,main = "Histogram of BMI when Heart Disease or Attack=1", col="red")
+par(mfrow=c(1,1))
+boxplot(BMI~HeartDiseaseorAttack, col=rainbow(12))
+x=BMI[HeartDiseaseorAttack==0]
+y=BMI[HeartDiseaseorAttack==1]
+t.test(x,y)
 
-# Example code in package build process
-*-Ex.R
+freq = table(HeartDiseaseorAttack,Smoker)/nrow(dt1)
+barplot(freq, main="Heart Disease or Attack vs Smoker",
+        xlab="Smoker", col=c("darkblue","red"),
+        legend = rownames(freq), beside=TRUE)
+chisq.test(table(Smoker,HeartDiseaseorAttack),correct = F)
 
-# Output files from R CMD build
-/*.tar.gz
+freq = table(HeartDiseaseorAttack,Diabetes)/nrow(dt1)
+barplot(freq, main="Heart Disease or Attack vs Diabetes",
+        xlab="Diabetes", col=c("darkblue","red"),
+        legend = rownames(freq), beside=TRUE)
+chisq.test(table(Diabetes,HeartDiseaseorAttack),correct = F)
 
-# Output files from R CMD check
-/*.Rcheck/
+freq = table(HeartDiseaseorAttack,Fruits)/nrow(dt1)
+barplot(freq, main="Heart Disease or Attack vs Fruits",
+        xlab="Fruits", col=c("darkblue","red"),
+        legend = rownames(freq), beside=TRUE)
+chisq.test(table(Fruits,HeartDiseaseorAttack),correct = F)
 
-# RStudio files
-.Rproj.user/
+freq = table(HeartDiseaseorAttack,HvyAlcoholConsump)/nrow(dt1)
+barplot(freq, main="Heart Disease or Attack vs Alcohol",
+        xlab="Alcohol", col=c("darkblue","red"),
+        legend = rownames(freq), beside=TRUE)
+chisq.test(table(HvyAlcoholConsump,HeartDiseaseorAttack),correct = F)
+############################################################### Stepwise Regression
+############################################ Full Model
+model1 = glm(HeartDiseaseorAttack ~., data = dt1, family = binomial)
+summary(model1)
+############################################ Forward Model
+library(MASS)
+model0 = glm(HeartDiseaseorAttack ~1, data = dt1, family = binomial)
+model2 =stepAIC(model0,scope = list(upper = model1,lower = model0),direction = "forward")
+summary(model2)
+############################################ Backward Model
+model3 =stepAIC(model1,scope = list(upper = model1,lower = model0),direction = "backward")
+summary(model3)
+############################################ Stepwise Model
+model4 = stepAIC(model0,scope = list(upper =model1,lower = model0),direction = "both")
+summary(model4)
+############################################################### Machine Learning
+dt1$HeartDiseaseorAttack=as.factor(dt1$HeartDiseaseorAttack)
+n=nrow(dt1)
+m=floor(0.7*n)
+set.seed(999)
+samp=sample(1:n,m)
+training_data=dt1[samp,]
+testing_data=dt1[-samp,]
 
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
+############################################ KNN
+library(caret)
+knn_model = train(HeartDiseaseorAttack ~., data=training_data[1:1000,], method="knn")
+knn_pred = predict(object = knn_model,newdata = testing_data)
+confusionMatrix(knn_pred,testing_data$HeartDiseaseorAttack)
+knn_acc=mean(knn_pred==testing_data$HeartDiseaseorAttack)*100
+knn_acc
+############################################ Tree
+library(caret)
+dt_model=train(HeartDiseaseorAttack~., data=training_data[1:1000,], method="rpart")
+dtـpred=predict(object = dt_model,newdata = testing_data)
+confusionMatrix(dtـpred, testing_data$HeartDiseaseorAttack)
+dt_acc=mean(dtـpred==testing_data$HeartDiseaseorAttack)*100
+dt_acc
 
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
+############################################ Forest
+rf_model=train(HeartDiseaseorAttack~., data=training_data[1:1000,], method="rf")
+rf_pred=predict(object = rf_model, newdata = testing_data)
+confusionMatrix(rf_pred, testing_data$HeartDiseaseorAttack)
+rf_acc=mean(rf_pred==testing_data$HeartDiseaseorAttack)*100
+rf_acc
+############################################ Compare
+comparison_matrix = data.frame( Model = c("KNN","Tree", "Forest"),
+  Accuracy = c(knn_acc,dt_acc,rf_acc))
+print(comparison_matrix)
 
-# knitr and R markdown default cache directories
-*_cache/
-/cache/
 
-# Temporary files created by R markdown
-*.utf8.md
-*.knit.md
 
-# R Environment Variables
-.Renviron
-
-# pkgdown site
-docs/
-
-# translation temp files
-po/*~
-
-# RStudio Connect folder
-rsconnect/
